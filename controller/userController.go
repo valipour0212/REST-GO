@@ -1,16 +1,20 @@
 package controller
 
 import (
+	"REST/Utility"
+	"REST/ViewModel/common/security"
+	userViewModel "REST/ViewModel/user"
 	"REST/service"
-	"REST/viewModel/common/security"
-	userViewModel "REST/viewModel/user"
+	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"time"
 )
 
-func GetUserList(ctx echo.Context) error {
+func GetUserList(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	fmt.Println(apiContext.GetUserId())
 
 	userService := service.NewUserService()
 	userList, err := userService.GetUserList()
@@ -18,74 +22,76 @@ func GetUserList(ctx echo.Context) error {
 		println(err)
 	}
 
-	return ctx.JSON(http.StatusOK, userList)
+	return c.JSON(http.StatusOK, userList)
 }
 
-func CreateNewUser(ctx echo.Context) error {
+func CreateNewUser(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+
 	newUser := new(userViewModel.CreateNewUserViewModel)
 
-	if err := ctx.Bind(newUser); err != nil {
-		return ctx.JSON(http.StatusBadRequest, err)
+	if err := c.Bind(newUser); err != nil {
+		return c.JSON(http.StatusBadRequest, "")
 	}
 
-	if err := ctx.Validate(newUser); err != nil {
-		return ctx.JSON(http.StatusBadRequest, err)
+	if err := c.Validate(newUser); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	token := ctx.Get("user").(*jwt.Token)
-	claims := token.Claims.(*security.JWTClaims)
-	newUser.CreatorUserId = claims.UserID
+	creator, err := apiContext.GetUserId()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "")
+	}
+
+	newUser.CreatorUserId = creator
 
 	userService := service.NewUserService()
-	newUserID, err := userService.CreateNewUser(*newUser)
+	newUserId, err := userService.CreateNewUser(*newUser)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	userResponseData := struct {
-		NewUserID string
+	userResData := struct {
+		NewUserId string
 	}{
-		NewUserID: newUserID,
+		NewUserId: newUserId,
 	}
-	return ctx.JSON(http.StatusOK, userResponseData)
+
+	return c.JSON(http.StatusOK, userResData)
 }
 
-func LoginUser(ctx echo.Context) error {
+func LoginUser(c echo.Context) error {
 	loginModel := new(userViewModel.LoginUserViewModel)
 
-	if err := ctx.Bind(loginModel); err != nil {
-		return ctx.JSON(http.StatusBadRequest, "")
+	if err := c.Bind(loginModel); err != nil {
+		return c.JSON(http.StatusBadRequest, "")
 	}
 
-	if err := ctx.Validate(loginModel); err != nil {
-		return ctx.JSON(http.StatusBadRequest, "Model Not Valid")
+	if err := c.Validate(loginModel); err != nil {
+		return c.JSON(http.StatusBadRequest, "Model not Valid")
 	}
 
 	userService := service.NewUserService()
 	user, err := userService.GetUserByUserNameAndPassword(*loginModel)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, "Not Found User")
+		return c.JSON(http.StatusBadRequest, "User Not found")
 	}
 
-	claims := &security.JWTClaims{
+	claims := &security.JwtClaims{
 		UserName: user.UserName,
-		UserID:   user.ID,
+		UserId:   user.Id,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	stringToken, err := token.SignedString([]byte("secret"))
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	userResData := struct {
-		Token string
-	}{
-		Token: stringToken,
-	}
-
-	return ctx.JSON(http.StatusOK, userResData)
+	return c.JSON(http.StatusOK, echo.Map{
+		"token": stringToken,
+	})
 }

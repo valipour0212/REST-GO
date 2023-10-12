@@ -1,8 +1,8 @@
 package routing
 
 import (
+	"REST/ViewModel/common/security"
 	"REST/controller"
-	"REST/viewModel/common/security"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -11,16 +11,15 @@ func SetRouting(e *echo.Echo) error {
 
 	e.POST("/login", controller.LoginUser)
 
-	Group := e.Group("users")
+	group := e.Group("users")
 
-	Group.GET("/getList", controller.GetUserList)
-
+	group.GET("/getList", controller.GetUserList)
 	jwtConfig := middleware.JWTConfig{
 		SigningKey: []byte("secret"),
-		Claims:     &security.JWTClaims{},
+		Claims:     &security.JwtClaims{},
 	}
 
-	Group.POST("/createNewUser", controller.CreateNewUser, middleware.JWTWithConfig(jwtConfig))
+	group.POST("/createNewUser", controller.CreateNewUser, middleware.JWTWithConfig(jwtConfig))
 
 	return nil
 }

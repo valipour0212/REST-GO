@@ -1,15 +1,14 @@
 package service
 
 import (
+	userViewModel "REST/ViewModel/user"
 	"REST/model/user"
 	"REST/repository"
-	userViewModel "REST/viewModel/user"
-	"time"
 )
 
 type UserService interface {
 	GetUserList() ([]user.User, error)
-	CreateNewUser(userModel userViewModel.CreateNewUserViewModel) (string, error)
+	CreateNewUser(userInput userViewModel.CreateNewUserViewModel) (string, error)
 	GetUserByUserNameAndPassword(loginViewModel userViewModel.LoginUserViewModel) (user.User, error)
 }
 
@@ -21,36 +20,27 @@ func NewUserService() UserService {
 }
 
 func (userService) GetUserList() ([]user.User, error) {
-	userRepository := repository.NewUserRepository()
 
+	userRepository := repository.NewUserRepository()
 	userList, err := userRepository.GetUserList()
+
 	return userList, err
 }
 
 func (userService) GetUserByUserNameAndPassword(loginViewModel userViewModel.LoginUserViewModel) (user.User, error) {
-	userRepository := repository.NewUserRepository()
 
+	userRepository := repository.NewUserRepository()
 	user, err := userRepository.GetUserByUserNameAndPassword(loginViewModel.UserName, loginViewModel.Password)
+
 	return user, err
 }
 
-func (userService) CreateNewUser(userModel userViewModel.CreateNewUserViewModel) (string, error) {
-	userEntity := user.User{
-		FirstName:     userModel.FirstName,
-		LastName:      userModel.LastName,
-		Email:         userModel.Email,
-		UserName:      userModel.UserName,
-		Password:      userModel.Password,
-		RegisterDate:  time.Now(),
-		CreatorUserID: userModel.CreatorUserId,
-	}
+func (userService) CreateNewUser(userInput userViewModel.CreateNewUserViewModel) (string, error) {
+
+	userEntity := user.User{}
 
 	userRepository := repository.NewUserRepository()
+	userId, err := userRepository.InsertUser(userEntity)
 
-	userID, err := userRepository.InsertUser(userEntity)
-	if err != nil {
-		return "", err
-	}
-
-	return userID, nil
+	return userId, err
 }

@@ -11,15 +11,15 @@ import (
 
 type UserRepository interface {
 	GetUserList() ([]user.User, error)
-	GetUserByID(id string) (user.User, error)
-	GetUserByUserNameAndPassword(userName, password string) (user.User, error)
+	GetUserById(id string) (user.User, error)
+	GetUserByUserNameAndPassword(username, password string) (user.User, error)
 	InsertUser(user user.User) (string, error)
-	UpdateUserByID(user user.User) error
-	DeleteByID(id string) error
+	UpdateUserById(user user.User) error
+	DeleteUserById(id string) error
 }
 
 type userRepository struct {
-	db database.DB
+	db database.Db
 }
 
 func NewUserRepository() UserRepository {
@@ -50,18 +50,17 @@ func (userRepository userRepository) GetUserList() ([]user.User, error) {
 	return users, nil
 
 }
+func (userRepository userRepository) GetUserById(id string) (user.User, error) {
 
-func (userRepository userRepository) GetUserByID(id string) (user.User, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return user.User{}, nil
+		return user.User{}, err
 	}
-
 	userCollection := userRepository.db.GetUserCollection()
-
 	var userObject user.User
+	// db.getCollection('users').find({"_id" : ObjectId("6297bdcc8d7757574658ed66")})
 	err = userCollection.FindOne(context.TODO(), bson.D{
-		{"_id", objectID},
+		{"_id", objectId},
 	}).Decode(&userObject)
 
 	if err != nil {
@@ -69,15 +68,15 @@ func (userRepository userRepository) GetUserByID(id string) (user.User, error) {
 	}
 
 	return userObject, nil
-}
 
-func (userRepository userRepository) GetUserByUserNameAndPassword(userName, password string) (user.User, error) {
+}
+func (userRepository userRepository) GetUserByUserNameAndPassword(username, password string) (user.User, error) {
 
 	userCollection := userRepository.db.GetUserCollection()
-
 	var userObject user.User
+	// db.getCollection('users').find({"_id" : ObjectId("6297bdcc8d7757574658ed66")})
 	err := userCollection.FindOne(context.TODO(), bson.D{
-		{"UserName", userName},
+		{"UserName", username},
 		{"Password", password},
 	}).Decode(&userObject)
 
@@ -86,48 +85,42 @@ func (userRepository userRepository) GetUserByUserNameAndPassword(userName, pass
 	}
 
 	return userObject, nil
-}
 
+}
 func (userRepository userRepository) InsertUser(user user.User) (string, error) {
 	userCollection := userRepository.db.GetUserCollection()
+	res, err := userCollection.InsertOne(context.TODO(), user)
 
-	result, err := userCollection.InsertOne(context.TODO(), user)
 	if err != nil {
 		return "", err
 	}
-
-	objectID := result.InsertedID.(primitive.ObjectID).Hex()
-
-	return objectID, nil
+	objectId := res.InsertedID.(primitive.ObjectID).Hex()
+	return objectId, nil
 }
-
-func (userRepository userRepository) UpdateUserByID(user user.User) error {
-	objectID, err := primitive.ObjectIDFromHex(user.ID)
+func (userRepository userRepository) UpdateUserById(user user.User) error {
+	objectId, err := primitive.ObjectIDFromHex(user.Id)
 	if err != nil {
 		return err
 	}
-
-	user.ID = ""
-
+	user.Id = ""
 	userCollection := userRepository.db.GetUserCollection()
+	_, err = userCollection.UpdateOne(context.TODO(), bson.D{{"_id", objectId}}, bson.D{{"$set", user}})
 
-	_, err = userCollection.UpdateOne(context.TODO(), bson.D{{"_id", objectID}}, bson.D{{"$set", user}})
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
-
-func (userRepository userRepository) DeleteByID(id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
+func (userRepository userRepository) DeleteUserById(id string) error {
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
 
 	userCollection := userRepository.db.GetUserCollection()
+	_, err = userCollection.DeleteOne(context.TODO(), bson.D{{"_id", objectId}})
 
-	_, err = userCollection.DeleteOne(context.TODO(), bson.D{{"_id", objectID}})
 	if err != nil {
 		return err
 	}

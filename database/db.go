@@ -7,29 +7,39 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type DB struct {
+type Db struct {
 	client *mongo.Client
 }
 
-func Connect() (DB, error) {
+func Connect() (Db, error) {
 	ctx := context.TODO()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
-		return DB{}, err
+		return Db{}, err
 	}
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
-		return DB{}, err
+		return Db{}, err
 	}
 
-	return DB{client: client}, nil
+	return Db{client: client}, nil
 
+	//
+	//userCollection := client.Database("toplearn-api-golang").Collection("users")
+	//
+	//var res bson.M
+	//err = userCollection.FindOne(ctx, bson.D{{"firstName", "Mohammad"}}).Decode(&res)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	//fmt.Println(res)
 }
 
-func (db DB) GetUserCollection() *mongo.Collection {
-	userCollection := db.client.Database("REST-API-Golang").Collection("user")
+func (db Db) GetUserCollection() *mongo.Collection {
+	userCollection := db.client.Database("REST-API-Golang").Collection("users")
 
 	return userCollection
 }

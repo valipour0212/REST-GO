@@ -28,6 +28,18 @@ func GetUserList(c echo.Context) error {
 func CreateNewUser(c echo.Context) error {
 	apiContext := c.(*Utility.ApiContext)
 
+	operatorUserId, err := apiContext.GetUserId()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "")
+	}
+
+	userService := service.NewUserService()
+
+	isValid := userService.IsUserValidForAccess(operatorUserId, "")
+	if !isValid {
+		return c.JSON(http.StatusForbidden, "")
+	}
+
 	newUser := new(userViewModel.CreateNewUserViewModel)
 
 	if err := c.Bind(newUser); err != nil {
@@ -38,14 +50,8 @@ func CreateNewUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	creator, err := apiContext.GetUserId()
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "")
-	}
+	newUser.CreatorUserId = operatorUserId
 
-	newUser.CreatorUserId = creator
-
-	userService := service.NewUserService()
 	newUserId, err := userService.CreateNewUser(*newUser)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)

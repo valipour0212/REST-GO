@@ -7,6 +7,7 @@ type CreateNewUserViewModel struct {
 	UserName      string
 	Password      string
 	CreatorUserId string
+	AvatarName    string
 }
 
 type EditUserViewModel struct {

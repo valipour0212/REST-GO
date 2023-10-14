@@ -8,7 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 type UserController interface {
@@ -24,6 +27,9 @@ type UserController interface {
 
 	//	DELETE
 	DeleteUser(c echo.Context) error
+
+	//
+	UploadAvatar(c echo.Context) error
 }
 
 type userController struct {
@@ -217,4 +223,40 @@ func (UC userController) DeleteUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
+}
+
+func (UC userController) UploadAvatar(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+
+	file, err := apiContext.FormFile("file")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	wd, err := os.Getwd()
+	imageServerPath := filepath.Join(wd, "wwwRoot", "images", "userAvatar", file.Filename)
+
+	des, err := os.Create(imageServerPath)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	defer des.Close()
+
+	_, err = io.Copy(des, src)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	userResData := struct {
+		IsSuccess bool
+	}{
+		IsSuccess: true,
+	}
+
+	return c.JSON(http.StatusOK, userResData)
 }

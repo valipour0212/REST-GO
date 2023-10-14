@@ -16,6 +16,7 @@ func SetRouting(e *echo.Echo) error {
 	accountController := controller.NewAccountController()
 
 	e.POST("/login", accountController.LoginUser)
+	e.POST("/uploadAvatar", userController.UploadAvatar)
 
 	group := e.Group("users")
 

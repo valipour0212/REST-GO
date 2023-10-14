@@ -14,24 +14,25 @@ func SetRouting(e *echo.Echo) error {
 
 	userController := controller.NewUserController()
 	accountController := controller.NewAccountController()
+	newsController := controller.NewNewsController()
 
 	e.POST("/login", accountController.LoginUser)
 	e.POST("/uploadAvatar", userController.UploadAvatar)
 
-	group := e.Group("users")
-
-	group.GET("/getList", userController.GetUserList)
+	//	Users
+	UserGroup := e.Group("users")
 	jwtConfig := middleware.JWTConfig{
 		SigningKey: []byte("secret"),
 		Claims:     &security.JwtClaims{},
 	}
+	UserGroup.GET("/getList", userController.GetUserList)
+	UserGroup.POST("/createNewUser", userController.CreateNewUser, PermissionChecker("CreateUser"), middleware.JWTWithConfig(jwtConfig))
+	UserGroup.PUT("/editUser/:id", userController.EditUser, PermissionChecker("EditUser"), middleware.JWTWithConfig(jwtConfig))
+	UserGroup.DELETE("/deleteUser/:id", userController.DeleteUser, PermissionChecker("DeleteUser"), middleware.JWTWithConfig(jwtConfig))
 
-	group.POST("/createNewUser", userController.CreateNewUser, PermissionChecker("CreateUser"), middleware.JWTWithConfig(jwtConfig))
-
-	group.PUT("/editUser/:id", userController.EditUser, PermissionChecker("EditUser"), middleware.JWTWithConfig(jwtConfig))
-
-	group.DELETE("/deleteUser/:id", userController.DeleteUser, PermissionChecker("DeleteUser"), middleware.JWTWithConfig(jwtConfig))
-
+	//	NEWS
+	NewsGroup := e.Group("news")
+	NewsGroup.GET("/getList", newsController.GetNewsList)
 	return nil
 }
 

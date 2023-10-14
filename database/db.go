@@ -43,3 +43,9 @@ func (db Db) GetUserCollection() *mongo.Collection {
 
 	return userCollection
 }
+
+func (db Db) GetNewsCollection() *mongo.Collection {
+	userCollection := db.client.Database("REST-API-Golang").Collection("news")
+
+	return userCollection
+}

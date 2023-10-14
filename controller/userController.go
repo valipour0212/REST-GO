@@ -2,6 +2,7 @@ package controller
 
 import (
 	"REST/Utility"
+	"REST/ViewModel/common/httpResponse"
 	"REST/ViewModel/common/security"
 	userViewModel "REST/ViewModel/user"
 	"REST/service"
@@ -23,7 +24,7 @@ func GetUserList(c echo.Context) error {
 		println(err)
 	}
 
-	return c.JSON(http.StatusOK, userList)
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userList))
 }
 
 func CreateNewUser(c echo.Context) error {
@@ -44,11 +45,11 @@ func CreateNewUser(c echo.Context) error {
 	newUser := new(userViewModel.CreateNewUserViewModel)
 
 	if err := c.Bind(newUser); err != nil {
-		return c.JSON(http.StatusBadRequest, "")
+		return c.JSON(http.StatusBadRequest, httpResponse.SuccessResponse("Data Not Found"))
 	}
 
 	if err := c.Validate(newUser); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, httpResponse.SuccessResponse(err))
 	}
 
 	newUser.CreatorUserId = operatorUserId
@@ -64,7 +65,7 @@ func CreateNewUser(c echo.Context) error {
 		NewUserId: newUserId,
 	}
 
-	return c.JSON(http.StatusOK, userResData)
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
 }
 
 func EditUser(c echo.Context) error {
@@ -102,7 +103,7 @@ func EditUser(c echo.Context) error {
 		IsSuccess: true,
 	}
 
-	return c.JSON(http.StatusOK, userResData)
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
 }
 
 func DeleteUser(c echo.Context) error {
@@ -127,7 +128,7 @@ func DeleteUser(c echo.Context) error {
 		IsSuccess: true,
 	}
 
-	return c.JSON(http.StatusOK, userResData)
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
 }
 
 func LoginUser(c echo.Context) error {

@@ -3,31 +3,37 @@ package controller
 import (
 	"REST/Utility"
 	"REST/ViewModel/common/httpResponse"
-	"REST/ViewModel/common/security"
 	userViewModel "REST/ViewModel/user"
 	"REST/service"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"time"
 )
 
-func GetUserList(c echo.Context) error {
-	apiContext := c.(*Utility.ApiContext)
-	fmt.Println(apiContext.GetUserId())
+type UserController interface {
+	CreateNewUser(c echo.Context) error
 
-	userService := service.NewUserService()
-	userList, err := userService.GetUserList()
-	if err != nil {
-		println(err)
-	}
+	//	GET
+	GetUserList(c echo.Context) error
 
-	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userList))
+	//	EDIT
+	EditUser(c echo.Context) error
+	EditUserRole(c echo.Context) error
+	EditUserPassword(c echo.Context) error
+
+	//	DELETE
+	DeleteUser(c echo.Context) error
 }
 
-func CreateNewUser(c echo.Context) error {
+type userController struct {
+}
+
+func NewUserController() UserController {
+	return userController{}
+}
+
+func (UC userController) CreateNewUser(c echo.Context) error {
 	apiContext := c.(*Utility.ApiContext)
 
 	operatorUserId, err := apiContext.GetUserId()
@@ -68,7 +74,22 @@ func CreateNewUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
 }
 
-func EditUser(c echo.Context) error {
+// GET
+func (UC userController) GetUserList(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	fmt.Println(apiContext.GetUserId())
+
+	userService := service.NewUserService()
+	userList, err := userService.GetUserList()
+	if err != nil {
+		println(err)
+	}
+
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userList))
+}
+
+// EDIT
+func (UC userController) EditUser(c echo.Context) error {
 	apiContext := c.(*Utility.ApiContext)
 
 	targetUserID := apiContext.Param("id")
@@ -105,8 +126,75 @@ func EditUser(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
 }
+func (UC userController) EditUserRole(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	targetUserId := apiContext.Param("id")
 
-func DeleteUser(c echo.Context) error {
+	userService := service.NewUserService()
+	newUserData := new(userViewModel.EditUserRoleViewModel)
+
+	if err := c.Bind(newUserData); err != nil {
+		return c.JSON(http.StatusBadRequest, "")
+	}
+
+	if err := c.Validate(newUserData); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	newUserData.TargetUserId = targetUserId
+
+	if !userService.IsUserExist(targetUserId) {
+		return c.JSON(http.StatusBadRequest, errors.New("User Not Found"))
+	}
+
+	err := userService.EditUserRole(*newUserData)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	userResData := struct {
+		IsSuccess bool
+	}{
+		IsSuccess: true,
+	}
+
+	return c.JSON(http.StatusOK, userResData)
+}
+func (UC userController) EditUserPassword(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	targetUserId := apiContext.Param("id")
+
+	userService := service.NewUserService()
+	newUserData := new(userViewModel.EditUserPasswordViewModel)
+
+	if err := c.Bind(newUserData); err != nil {
+		return c.JSON(http.StatusBadRequest, "")
+	}
+
+	if err := c.Validate(newUserData); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	newUserData.TargetUserId = targetUserId
+
+	if !userService.IsUserExist(targetUserId) {
+		return c.JSON(http.StatusBadRequest, errors.New("User Not Found"))
+	}
+
+	err := userService.EditUserPassword(*newUserData)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	userResData := struct {
+		IsSuccess bool
+	}{
+		IsSuccess: true,
+	}
+
+	return c.JSON(http.StatusOK, userResData)
+}
+
+// DELETE
+func (UC userController) DeleteUser(c echo.Context) error {
 
 	apiContext := c.(*Utility.ApiContext)
 
@@ -129,40 +217,4 @@ func DeleteUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(userResData))
-}
-
-func LoginUser(c echo.Context) error {
-	loginModel := new(userViewModel.LoginUserViewModel)
-
-	if err := c.Bind(loginModel); err != nil {
-		return c.JSON(http.StatusBadRequest, "")
-	}
-
-	if err := c.Validate(loginModel); err != nil {
-		return c.JSON(http.StatusBadRequest, "Model not Valid")
-	}
-
-	userService := service.NewUserService()
-	user, err := userService.GetUserByUserNameAndPassword(*loginModel)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "User Not found")
-	}
-
-	claims := &security.JwtClaims{
-		UserName: user.UserName,
-		UserId:   user.Id,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	stringToken, err := token.SignedString([]byte("secret"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-
-	return c.JSON(http.StatusOK, echo.Map{
-		"token": stringToken,
-	})
 }

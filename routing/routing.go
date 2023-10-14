@@ -12,21 +12,24 @@ import (
 
 func SetRouting(e *echo.Echo) error {
 
-	e.POST("/login", controller.LoginUser)
+	userController := controller.NewUserController()
+	accountController := controller.NewAccountController()
+
+	e.POST("/login", accountController.LoginUser)
 
 	group := e.Group("users")
 
-	group.GET("/getList", controller.GetUserList)
+	group.GET("/getList", userController.GetUserList)
 	jwtConfig := middleware.JWTConfig{
 		SigningKey: []byte("secret"),
 		Claims:     &security.JwtClaims{},
 	}
 
-	group.POST("/createNewUser", controller.CreateNewUser, PermissionChecker("CreateUser"), middleware.JWTWithConfig(jwtConfig))
+	group.POST("/createNewUser", userController.CreateNewUser, PermissionChecker("CreateUser"), middleware.JWTWithConfig(jwtConfig))
 
-	group.PUT("/editUser/:id", controller.EditUser, PermissionChecker("EditUser"), middleware.JWTWithConfig(jwtConfig))
+	group.PUT("/editUser/:id", userController.EditUser, PermissionChecker("EditUser"), middleware.JWTWithConfig(jwtConfig))
 
-	group.DELETE("/deleteUser/:id", controller.DeleteUser, PermissionChecker("DeleteUser"), middleware.JWTWithConfig(jwtConfig))
+	group.DELETE("/deleteUser/:id", userController.DeleteUser, PermissionChecker("DeleteUser"), middleware.JWTWithConfig(jwtConfig))
 
 	return nil
 }

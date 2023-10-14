@@ -17,3 +17,13 @@ type EditUserViewModel struct {
 	UserName     string `validate:"required"`
 	Password     string `validate:"required"`
 }
+
+type EditUserRoleViewModel struct {
+	TargetUserId string
+	Roles        []string `validate:"required"`
+}
+
+type EditUserPasswordViewModel struct {
+	TargetUserId string
+	Password     string `validate:"required"`
+}

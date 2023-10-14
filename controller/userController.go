@@ -5,6 +5,7 @@ import (
 	"REST/ViewModel/common/security"
 	userViewModel "REST/ViewModel/user"
 	"REST/service"
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
@@ -61,6 +62,69 @@ func CreateNewUser(c echo.Context) error {
 		NewUserId string
 	}{
 		NewUserId: newUserId,
+	}
+
+	return c.JSON(http.StatusOK, userResData)
+}
+
+func EditUser(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+
+	targetUserID := apiContext.Param("id")
+	fmt.Println(targetUserID)
+
+	userService := service.NewUserService()
+
+	newUserData := new(userViewModel.EditUserViewModel)
+
+	if err := c.Bind(newUserData); err != nil {
+		return c.JSON(http.StatusBadRequest, "")
+	}
+
+	if err := c.Validate(newUserData); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	newUserData.TargetUserID = targetUserID
+
+	if !userService.IsUserExist(targetUserID) {
+		return c.JSON(http.StatusBadRequest, errors.New("Not Found User"))
+	}
+
+	err := userService.EditUser(*newUserData)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	userResData := struct {
+		IsSuccess bool
+	}{
+		IsSuccess: true,
+	}
+
+	return c.JSON(http.StatusOK, userResData)
+}
+
+func DeleteUser(c echo.Context) error {
+
+	apiContext := c.(*Utility.ApiContext)
+
+	targetUserId := apiContext.Param("id")
+
+	userService := service.NewUserService()
+	if !userService.IsUserExist(targetUserId) {
+		return c.JSON(http.StatusBadRequest, errors.New("User Not Found"))
+	}
+
+	err := userService.DeleteUser(targetUserId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	userResData := struct {
+		IsSuccess bool
+	}{
+		IsSuccess: true,
 	}
 
 	return c.JSON(http.StatusOK, userResData)

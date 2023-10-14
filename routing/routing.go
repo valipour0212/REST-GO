@@ -24,6 +24,10 @@ func SetRouting(e *echo.Echo) error {
 
 	group.POST("/createNewUser", controller.CreateNewUser, PermissionChecker("CreateUser"), middleware.JWTWithConfig(jwtConfig))
 
+	group.PUT("/editUser/:id", controller.EditUser, PermissionChecker("EditUser"), middleware.JWTWithConfig(jwtConfig))
+
+	group.DELETE("/deleteUser/:id", controller.DeleteUser, PermissionChecker("DeleteUser"), middleware.JWTWithConfig(jwtConfig))
+
 	return nil
 }
 

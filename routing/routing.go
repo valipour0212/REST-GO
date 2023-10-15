@@ -1,66 +1,50 @@
 package routing
 
 import (
-	"REST/Utility"
-	"REST/ViewModel/common/security"
+	customMiddlewares "REST/Utility/middleware"
+	"REST/config"
 	"REST/controller"
-	"REST/service"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"net/http"
 )
 
 func SetRouting(e *echo.Echo) error {
 
-	userController := controller.NewUserController()
-	accountController := controller.NewAccountController()
-	newsController := controller.NewNewsController()
+	RouteUserController(e)
+	RouteAccountController(e)
+	RouteNewsController(e)
 
-	e.POST("/login", accountController.LoginUser)
-	e.POST("/uploadAvatar", userController.UploadAvatar)
-
-	//	Users
-	UserGroup := e.Group("users")
-	jwtConfig := middleware.JWTConfig{
-		SigningKey: []byte("secret"),
-		Claims:     &security.JwtClaims{},
-	}
-	UserGroup.GET("/getList", userController.GetUserList)
-	UserGroup.POST("/createNewUser", userController.CreateNewUser, PermissionChecker("CreateUser"), middleware.JWTWithConfig(jwtConfig))
-	UserGroup.PUT("/editUser/:id", userController.EditUser, PermissionChecker("EditUser"), middleware.JWTWithConfig(jwtConfig))
-	UserGroup.DELETE("/deleteUser/:id", userController.DeleteUser, PermissionChecker("DeleteUser"), middleware.JWTWithConfig(jwtConfig))
-
-	//	NEWS
-	NewsGroup := e.Group("news")
-	NewsGroup.GET("/getList", newsController.GetNewsList)
 	return nil
 }
 
-func PermissionChecker(permission string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+func RouteUserController(e *echo.Echo) {
+	userController := controller.NewUserController()
 
-			apiContext := c.(*Utility.ApiContext)
+	e.POST("/UploadAvatar", userController.UploadAvatar)
 
-			operatorUserId, err := apiContext.GetUserId()
-			if err != nil {
-				return &echo.HTTPError{
-					Code:     401,
-					Message:  http.StatusUnauthorized,
-					Internal: err,
-				}
-			}
+	userGroup := e.Group("users")
 
-			userService := service.NewUserService()
-			isValid := userService.IsUserValidForAccess(operatorUserId, permission)
-			if !isValid {
-				return &echo.HTTPError{
-					Code:    403,
-					Message: http.StatusForbidden,
-				}
-			}
+	userGroup.GET("/getList", userController.GetUserList)
 
-			return next(c)
-		}
-	}
+	userGroup.POST("/CreateNewUser", userController.CreateNewUser, customMiddlewares.PermissionChecker("CreateUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
+
+	userGroup.PUT("/EditUser/:id", userController.EditUser, customMiddlewares.PermissionChecker("EditUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
+	userGroup.DELETE("/DeleteUser/:id", userController.DeleteUser, customMiddlewares.PermissionChecker("DeleteUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
+
+	userGroup.PUT("/EditUserRole/:id", userController.EditUserRole, middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
+	userGroup.PUT("/EditUserPassword/:id", userController.EditUserPassword, middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
+
+}
+
+func RouteAccountController(e *echo.Echo) {
+	accountController := controller.NewAccountController()
+	e.POST("/login", accountController.LoginUser)
+}
+
+func RouteNewsController(e *echo.Echo) {
+	newsController := controller.NewNewsController()
+
+	newsGroup := e.Group("news")
+	newsGroup.GET("/getList", newsController.GetNewsList)
+	newsGroup.POST("/create", newsController.CreateNews)
 }

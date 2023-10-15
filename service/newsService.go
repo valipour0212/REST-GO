@@ -14,7 +14,9 @@ import (
 
 type NewsService interface {
 	GetNewsList() ([]news.News, error)
-	CreateNewUser(userInput newsViewModel.CreateNewsViewModel, imageFile *multipart.FileHeader) (string, error)
+	CreateNews(userInput newsViewModel.CreateNewsViewModel, imageFile *multipart.FileHeader) (string, error)
+	EditNews(userInput newsViewModel.EditNewsViewModel, imageFile *multipart.FileHeader) error
+	IsNewsExist(id string) bool
 }
 
 type newsService struct {
@@ -32,7 +34,7 @@ func (newsService) GetNewsList() ([]news.News, error) {
 	return newsList, err
 }
 
-func (NewsSer newsService) CreateNewUser(userInput newsViewModel.CreateNewsViewModel, imageFile *multipart.FileHeader) (string, error) {
+func (NewsSer newsService) CreateNews(userInput newsViewModel.CreateNewsViewModel, imageFile *multipart.FileHeader) (string, error) {
 
 	newsEntity := news.News{
 		Title:            userInput.Title,
@@ -70,4 +72,66 @@ func (NewsSer newsService) CreateNewUser(userInput newsViewModel.CreateNewsViewM
 	newsId, err := newsRepository.InsertNews(newsEntity)
 
 	return newsId, err
+}
+
+func (NewsSer newsService) EditNews(userInput newsViewModel.EditNewsViewModel, imageFile *multipart.FileHeader) error {
+
+	newsRepository := repository.NewNewsRepository()
+	newsEntity := news.News{
+		Id:               userInput.Id,
+		Title:            userInput.Title,
+		ImageName:        userInput.ImageName,
+		ShortDescription: userInput.ShortDescription,
+		Description:      userInput.Description,
+		CreateDate:       time.Now(),
+		CreatorUserId:    userInput.CreatorUserId,
+	}
+	if imageFile != nil {
+		src, err := imageFile.Open()
+		if err != nil {
+			return err
+		}
+		oldNews, err := newsRepository.GetNewsById(userInput.Id)
+		if err != nil {
+			return err
+		}
+
+		wd, err := os.Getwd()
+
+		if oldNews.ImageName != "" {
+			oldImageServerPath := filepath.Join(wd, "wwwroot", "images", "news", oldNews.ImageName)
+			os.Remove(oldImageServerPath)
+		}
+
+		fileName := uuid.New().String() + filepath.Ext(imageFile.Filename)
+
+		imageServerPath := filepath.Join(wd, "wwwroot", "images", "news", fileName)
+
+		des, err := os.Create(imageServerPath)
+		if err != nil {
+			return err
+		}
+		defer des.Close()
+
+		_, err = io.Copy(des, src)
+		if err != nil {
+			return err
+		}
+		newsEntity.ImageName = fileName
+	}
+
+	err := newsRepository.UpdateNewsById(newsEntity)
+
+	return err
+}
+
+func (NewsSer newsService) IsNewsExist(id string) bool {
+	newsRepository := repository.NewNewsRepository()
+	_, err := newsRepository.GetNewsById(id)
+
+	if err != nil {
+		return false
+	}
+
+	return true
 }

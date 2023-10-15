@@ -26,7 +26,7 @@ func RouteUserController(e *echo.Echo) {
 
 	userGroup.GET("/getList", userController.GetUserList)
 
-	userGroup.POST("/CreateNewUser", userController.CreateNewUser, customMiddlewares.PermissionChecker("CreateUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
+	userGroup.POST("/CreateNews", userController.CreateNewUser, customMiddlewares.PermissionChecker("CreateUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
 
 	userGroup.PUT("/EditUser/:id", userController.EditUser, customMiddlewares.PermissionChecker("EditUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
 	userGroup.DELETE("/DeleteUser/:id", userController.DeleteUser, customMiddlewares.PermissionChecker("DeleteUser"), middleware.JWTWithConfig(config.AppConfig.DefJwtConfig))
@@ -47,4 +47,5 @@ func RouteNewsController(e *echo.Echo) {
 	newsGroup := e.Group("news")
 	newsGroup.GET("/getList", newsController.GetNewsList)
 	newsGroup.POST("/create", newsController.CreateNews)
+	newsGroup.POST("/edit/:id", newsController.EditNews)
 }

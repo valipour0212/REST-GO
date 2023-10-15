@@ -10,4 +10,6 @@ type News struct {
 	ImageName        string    `bson:"ImageName,omitempty"`
 	CreateDate       time.Time `bson:"CreateDate,omitempty"`
 	CreatorUserId    string    `bson:"CreatorUserId,omitempty"`
+	VisitCount       int       `bson:"VisitCount,omitempty"`
+	LikeCount        int       `bson:"LikeCount,omitempty"`
 }

@@ -13,8 +13,11 @@ import (
 
 type NewsController interface {
 	GetNewsList(c echo.Context) error
+	GetNews(c echo.Context) error
 	CreateNews(c echo.Context) error
 	EditNews(c echo.Context) error
+	DeleteNews(c echo.Context) error
+	LikeNews(c echo.Context) error
 }
 
 type newsController struct {
@@ -36,6 +39,21 @@ func (NewsCon newsController) GetNewsList(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(newsList))
+}
+
+func (NewsCon newsController) GetNews(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	targetNewsId := apiContext.Param("id")
+
+	newsService := service.NewNewsService()
+	news, err := newsService.GetNewsById(targetNewsId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpResponse.NotFoundResponse(nil, "news not found"))
+	}
+
+	newsService.AddVisitCount(targetNewsId)
+
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(news))
 }
 
 func (NewsCon newsController) CreateNews(c echo.Context) error {
@@ -96,6 +114,41 @@ func (NewsCon newsController) EditNews(c echo.Context) error {
 	}
 
 	err = newsService.EditNews(*editNews, file)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(nil))
+}
+
+func (NewsCon newsController) DeleteNews(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	targetNewsId := apiContext.Param("id")
+
+	newsService := service.NewNewsService()
+	if !newsService.IsNewsExist(targetNewsId) {
+		return c.JSON(http.StatusNotFound, httpResponse.SuccessResponse("Data not found"))
+	}
+
+	err := newsService.DeleteNews(targetNewsId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	return c.JSON(http.StatusOK, httpResponse.SuccessResponse(nil))
+}
+
+func (NewsCon newsController) LikeNews(c echo.Context) error {
+	apiContext := c.(*Utility.ApiContext)
+	targetNewsId := apiContext.Param("id")
+
+	newsService := service.NewNewsService()
+
+	if !newsService.IsNewsExist(targetNewsId) {
+		return c.JSON(http.StatusBadRequest, errors.New("User Not Found"))
+	}
+
+	err := newsService.AddLike(targetNewsId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}

@@ -14,9 +14,14 @@ import (
 
 type NewsService interface {
 	GetNewsList() ([]news.News, error)
+
 	CreateNews(userInput newsViewModel.CreateNewsViewModel, imageFile *multipart.FileHeader) (string, error)
+	GetNewsById(id string) (news.News, error)
 	EditNews(userInput newsViewModel.EditNewsViewModel, imageFile *multipart.FileHeader) error
 	IsNewsExist(id string) bool
+	DeleteNews(id string) error
+	AddVisitCount(id string) error
+	AddLike(id string) error
 }
 
 type newsService struct {
@@ -32,6 +37,12 @@ func (newsService) GetNewsList() ([]news.News, error) {
 	newsRepository := repository.NewNewsRepository()
 	newsList, err := newsRepository.GetNewsList()
 	return newsList, err
+}
+
+func (NewsSer newsService) GetNewsById(id string) (news.News, error) {
+	newsRepository := repository.NewNewsRepository()
+	news, err := newsRepository.GetNewsById(id)
+	return news, err
 }
 
 func (NewsSer newsService) CreateNews(userInput newsViewModel.CreateNewsViewModel, imageFile *multipart.FileHeader) (string, error) {
@@ -123,6 +134,59 @@ func (NewsSer newsService) EditNews(userInput newsViewModel.EditNewsViewModel, i
 	err := newsRepository.UpdateNewsById(newsEntity)
 
 	return err
+}
+
+func (NewsSer newsService) DeleteNews(id string) error {
+
+	newsRepository := repository.NewNewsRepository()
+	oldNews, err := newsRepository.GetNewsById(id)
+	if err != nil {
+		return err
+	}
+	if oldNews.ImageName != "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		oldImageServerPath := filepath.Join(wd, "wwwroot", "images", "news", oldNews.ImageName)
+		os.Remove(oldImageServerPath)
+	}
+
+	err = newsRepository.DeleteNewsById(id)
+
+	return err
+}
+
+func (NewsSer newsService) AddVisitCount(id string) error {
+
+	newsRepository := repository.NewNewsRepository()
+	news, err := newsRepository.GetNewsById(id)
+	if err != nil {
+		return err
+	}
+	news.VisitCount += 1
+	err = newsRepository.UpdateNewsById(news)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (NewsSer newsService) AddLike(id string) error {
+
+	newsRepository := repository.NewNewsRepository()
+	news, err := newsRepository.GetNewsById(id)
+	if err != nil {
+		return err
+	}
+	news.LikeCount += 1
+	err = newsRepository.UpdateNewsById(news)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (NewsSer newsService) IsNewsExist(id string) bool {
